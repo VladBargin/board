@@ -32,28 +32,29 @@ def receiveImage(soc, screen):
 rec = 1
 def receive(soc, screen):
     global rec
-    while rec > 0:
-        zz = []
-        while True:
-            zz.append(soc.recv(8192).decode("utf8").rstrip())
-            if zz[-1][-1] == ']':
-                try:
-                    t = eval(''.join(zz))
-                    zz = []
-                    for x in t:
-                        color = decRgb(x[0])
-                        pp = decPos(x[1])
-                        np = decPos(x[2])
-                        w = x[3]
-                        pygame.draw.line(screen, color, pp, np, w)
-                        for i in range(-1, 2):
-                            for j in range(-1, 2):
-                                pygame.draw.aaline(screen, color, (pp[0] + i, pp[1] + j), (np[0] + i, np[1] + j), w)
-                    pygame.display.flip()
-                    break
-                except:
-                    pass
-        rec -= 1
+    while WAIT_TIME > 0:
+        while rec > 0:
+            zz = []
+            while True:
+                zz.append(soc.recv(8192).decode("utf8").rstrip())
+                if zz[-1][-1] == ']':
+                    try:
+                        t = eval(''.join(zz))
+                        zz = []
+                        for x in t:
+                            color = decRgb(x[0])
+                            pp = decPos(x[1])
+                            np = decPos(x[2])
+                            w = x[3]
+                            pygame.draw.line(screen, color, pp, np, w)
+                            for i in range(-1, 2):
+                                for j in range(-1, 2):
+                                    pygame.draw.aaline(screen, color, (pp[0] + i, pp[1] + j), (np[0] + i, np[1] + j), w)
+                        break
+                    except:
+                        pass
+            rec -= 1
+        time.sleep(0.01)
 
 def main():
     global rec
@@ -97,7 +98,7 @@ def main():
     print("RGB:", r, g, b, '\n')
     soc.sendall(str('__big__').encode('utf8'))
 
-#    Thread(target=receive, args=(soc, screen)).start()
+    Thread(target=receive, args=(soc, screen)).start()
     while running:
 
         # event handling, gets all event from the event queue
@@ -131,7 +132,7 @@ def main():
         px = x
         py = y
 
-        if timer <= 0:
+        if timer <= 0 and rec == 0:
             timer = 10
             rec += 1
             if len(events):
@@ -139,10 +140,11 @@ def main():
             else:
                 soc.sendall(str('__idle__').encode('utf8'))
             events = []
-        receive(soc, screen)
+##        receive(soc, screen)
         pygame.display.flip()
         timer -= 1
         time.sleep(0.015)
+    WAIT_TIME = 0
     soc.sendall(str('__exit__').encode('utf8'))
     soc.close()
 

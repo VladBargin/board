@@ -26,8 +26,8 @@ str_to_send_big = ''
 str_to_send_small = ''
 screen = None
 MAX_EVENTS = 350
-CNT_EVENTS = 5
-WAIT_TIME = 0.01 # This is aproximate, because I may randomize a bit to avoid some data races.
+CNT_EVENTS = 10
+WAIT_TIME = 0.015 # This is aproximate, because I may randomize a bit to avoid some data races.
 
 # And this is a flag. I don't want to use the queue system because it won't allow me to do what I want.
 qUsed = False
@@ -177,7 +177,7 @@ def clientThread(connection, ip, port, ID, max_buffer_size = 8192):
     
     idUsed[ID] = (True, connection)
     ci = 1000
-    CNT_EVENTS += 15
+    CNT_EVENTS += EVENTS_PER_CLIENT
     while ci > 0:
         try:
             inp = receive_input(connection, max_buffer_size)
@@ -206,7 +206,7 @@ def clientThread(connection, ip, port, ID, max_buffer_size = 8192):
                             if not qUsed:
                                 addEvent(ev)
                                 break
-                            time.sleep(random.uniform(0.00001, 0.0001))
+                            time.sleep(random.uniform(0.00001, 0.00005))
                     break
 
             sendEvents(connection, ip, port)
@@ -216,7 +216,7 @@ def clientThread(connection, ip, port, ID, max_buffer_size = 8192):
             time.sleep(0.01)
 
     
-    CNT_EVENTS -= 15
+    CNT_EVENTS -= EVENTS_PER_CLIENT
                 
     idUsed[ID] = (False, None)
 
