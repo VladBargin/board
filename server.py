@@ -6,6 +6,7 @@ from threading import Thread
 import threading
 import random
 import pygame
+import os
 from PIL import Image
 from queue import Queue
 from util import *
@@ -87,7 +88,7 @@ def sendEvents(connection, ip, port, big=False):
     sData -= 1
 
 def sendFile(connection, path):
-    in_file = open('screenshot.png', 'rb') # opening for [r]eading as [b]inary
+    in_file = open(path, 'rb') # opening for [r]eading as [b]inary
     data = in_file.read() # if you only wanted to read 512 bytes, do .read(512)
     in_file.close()
     le = len(data)
@@ -96,8 +97,13 @@ def sendFile(connection, path):
     
 
 def sendScreen(connection):
-    pygame.image.save(screen, 'screenshot.png')
-    sendFile(connection, 'screenshot.png')
+    global sData
+    sData += 1
+    fname = 'screenshot' + str(random.randint(0, 10000000)) + '.png'
+    pygame.image.save(screen, fname)
+    sData -= 1
+    sendFile(connection, fname)
+    os.remove(fname)
     #im = Image.open("screenshot.png").convert('RGB').load()
     #ta = [tuple([im[i, j][0] + im[i, j][1]*256 + im[i, j][2]*256*256 for j in range(HEIGHT)]) for i in range(WIDTH)]
     #connection.sendall(str(ta).encode('utf8'))
@@ -187,6 +193,8 @@ def clientThread(connection, ip, port, ID, max_buffer_size = 8192):
                 time.sleep(WAIT_TIME)
                 continue
             elif inp == '__screen__':
+                while sData:
+                    time.sleep(random.uniform(0.0001, 0.0005))
                 sendScreen(connection)
                 time.sleep(random.uniform(0.01, 0.02))
                 continue

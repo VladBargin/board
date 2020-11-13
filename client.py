@@ -7,6 +7,7 @@ from PIL import Image
 from threading import Thread
 import threading
 from util import *
+import os
 
 WAIT_TIME = 0.025
 
@@ -24,10 +25,12 @@ def receiveFile(soc, path):
     out_file.close()
 
 def receiveImage(soc, screen):
-    receiveFile(soc, 'screen.png')
-    screen.blit(pygame.image.load('screen.png'), (0, 0))
+    fname = 'screen' + str(random.randint(0, 10000000)) + '.png'
+    receiveFile(soc, fname)
+    screen.blit(pygame.image.load(fname), (0, 0))
     pygame.display.flip()
-    print('Got screenshot')    
+    os.remove(fname)
+##    print('Got screenshot')    
 
 # define a variable to control the main loop
 running = True
@@ -55,9 +58,19 @@ def receive(soc, screen):
                         pass
             rec -= 1
         pygame.display.flip()
-        time.sleep(0.012)
+        time.sleep(0.011)
 
 def bigUpdate(soc, screen):
+    global rec, lock
+    lock = True
+##    soc.sendall('__screen__'.encode('utf8'))
+##    receiveImage(soc, screen)
+    rec += 1
+    soc.sendall(str('__big__').encode('utf8'))
+##    soc.sendall(str('__idle__').encode('utf8'))
+    lock = False
+
+def bigUpdate2(soc, screen):
     global rec, lock
     lock = True
     soc.sendall('__screen__'.encode('utf8'))
@@ -98,12 +111,13 @@ def main():
     events = []
     timer = 15
     ctimer = 0
+    tct = 0
 
     white = (255, 255, 255)
 
 
+        
     print("RGB:", r, g, b, '\n')
-    
 
     Thread(target=receive, args=(soc, screen)).start()
     while running:
@@ -130,15 +144,25 @@ def main():
             elif pPressed3 and pressed3:
                 events.append(encEvent(255, 255, 255, px, py, x, y, 100))
                 pygame.draw.line(screen, white, (px, py), (x, y), 100)
+            tct = 25
+        else:
+            tct -= 1
             
         pPressed = pressed
         pPressed2 = pressed2
         pPressed3 = pressed3
         px = x
         py = y
-        if ctimer <= 0 and rec == 0:
+        if tct <= 0 and rec == 0:
+            time.sleep(0.01)
+            bigUpdate2(soc, screen)
+            tct = 25
+            time.sleep(0.01)
+        elif ctimer <= 0 and rec == 0:
+            time.sleep(0.005)
             ctimer = 2000
             bigUpdate(soc, screen)
+            time.sleep(0.005)
         elif timer <= 0 and rec == 0:
             timer = 15
             rec += 1
