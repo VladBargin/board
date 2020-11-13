@@ -29,7 +29,7 @@ def receiveImage(soc, screen):
     pygame.display.flip()
     print('DONE')    
 
-rec = 0
+rec = 1
 def receive(soc, screen):
     global rec
     while rec > 0:
@@ -89,13 +89,13 @@ def main():
     pPressed3 = False
     # main loop
     events = []
-    timer = 4
-    ctimer = 0
+    timer = 9
 
     white = (255, 255, 255)
 
 
     print("RGB:", r, g, b, '\n')
+    soc.sendall(str('__big__').encode('utf8'))
 
 #    Thread(target=receive, args=(soc, screen)).start()
     while running:
@@ -131,11 +131,7 @@ def main():
         px = x
         py = y
 
-        if ctimer <= 0:
-            ctimer = 51
-            rec += 1
-            soc.sendall(str('__big__').encode('utf8'))
-        elif timer <= 0:
+        if timer <= 0:
             timer = 10
             rec += 1
             if len(events):
@@ -146,7 +142,6 @@ def main():
         receive(soc, screen)
         pygame.display.flip()
         timer -= 1
-        ctimer -= 1
         time.sleep(0.015)
     soc.sendall(str('__exit__').encode('utf8'))
     soc.close()

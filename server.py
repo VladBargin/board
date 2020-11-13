@@ -26,7 +26,7 @@ str_to_send_big = ''
 str_to_send_small = ''
 screen = None
 MAX_EVENTS = 350
-CNT_EVENTS = 96
+CNT_EVENTS = 5
 WAIT_TIME = 0.01 # This is aproximate, because I may randomize a bit to avoid some data races.
 
 # And this is a flag. I don't want to use the queue system because it won't allow me to do what I want.
@@ -167,16 +167,18 @@ def regularThread():
         updateETS()
         if i % 100 == 0:
             sz = sys.getsizeof(str_to_send_big.encode('utf8')) / 1024
-            print(len(events_to_send), 'events stored, takes up', "{:.2f}".format(sz), 'KB')            
+            print(len(events_to_send), 'events stored, takes up', "{:.2f}".format(sz), 'KB ', 'C_E:', CNT_EVENTS)            
         i += 1
         time.sleep(WAIT_TIME)
 
 
 def clientThread(connection, ip, port, ID, max_buffer_size = 8192):
-    global idUsed
+    global idUsed, CNT_EVENTS
     
     idUsed[ID] = (True, connection)
-    while True:
+    ci = 1000
+    CNT_EVENTS += 15
+    while ci > 0:
         try:
             inp = receive_input(connection, max_buffer_size)
             if inp == '__exit__':
@@ -208,9 +210,13 @@ def clientThread(connection, ip, port, ID, max_buffer_size = 8192):
                     break
 
             sendEvents(connection, ip, port)
+            ci = 1000
         except:
-            pass
+            ci -= 1
+            time.sleep(0.01)
+
     
+    CNT_EVENTS -= 15
                 
     idUsed[ID] = (False, None)
 
