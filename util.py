@@ -1,7 +1,7 @@
 WIDTH = 800
 HEIGHT = 550
 HEADER_SIZE = 20
-EVENTS_PER_CLIENT = 20
+EVENTS_PER_CLIENT = 25
 
 def encRgb(r, g, b):
     return r + g*256 + b * 256 * 256

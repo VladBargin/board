@@ -133,7 +133,7 @@ def start_server():
         while sData > 0:
             time.sleep(0.01)
         draw()
-        time.sleep(0.25)
+        time.sleep(0.04)
         
     soc.close()
 

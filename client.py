@@ -54,7 +54,7 @@ def receive(soc, screen):
                     except:
                         pass
             rec -= 1
-        time.sleep(0.01)
+        time.sleep(0.005)
 
 def main():
     global rec
@@ -90,7 +90,7 @@ def main():
     pPressed3 = False
     # main loop
     events = []
-    timer = 9
+    timer = 15
 
     white = (255, 255, 255)
 
@@ -133,7 +133,7 @@ def main():
         py = y
 
         if timer <= 0 and rec == 0:
-            timer = 10
+            timer = 15
             rec += 1
             if len(events):
                 soc.sendall(str(events).replace(' ', '').encode('utf8'))
@@ -143,7 +143,7 @@ def main():
 ##        receive(soc, screen)
         pygame.display.flip()
         timer -= 1
-        time.sleep(0.015)
+        time.sleep(0.001)
     WAIT_TIME = 0
     soc.sendall(str('__exit__').encode('utf8'))
     soc.close()
