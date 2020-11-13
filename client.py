@@ -70,6 +70,13 @@ def main():
         sys.exit()
         
     soc.sendall('__screen__'.encode('utf8'))
+
+    ts = input('Input RGB (press enter for random): ')
+    try:
+        r, g, b = map(int, ts.split())
+    except:
+        r, g, b = random.randint(0, 160), random.randint(0, 160), random.randint(0, 160)    
+
     pygame.init()
     screen = pygame.display.set_mode((WIDTH,HEIGHT))
     receiveImage(soc, screen)
@@ -84,12 +91,6 @@ def main():
     # main loop
     events = []
     timer = 9
-    
-    ts = input('Input RGB (press enter for random): ')
-    try:
-        r, g, b = map(int, ts.split())
-    except:
-        r, g, b = random.randint(0, 160), random.randint(0, 160), random.randint(0, 160)
 
     white = (255, 255, 255)
 
