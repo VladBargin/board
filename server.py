@@ -25,9 +25,9 @@ events_to_send = []
 str_to_send_big = ''
 str_to_send_small = ''
 screen = None
-MAX_EVENTS = 1024
+MAX_EVENTS = 700
 CNT_EVENTS = 10
-WAIT_TIME = 0.015 # This is aproximate, because I may randomize a bit to avoid some data races.
+WAIT_TIME = 0.005 # This is aproximate, because I may randomize a bit to avoid some data races.
 
 # And this is a flag. I don't want to use the queue system because it won't allow me to do what I want.
 qUsed = False
@@ -188,7 +188,7 @@ def clientThread(connection, ip, port, ID, max_buffer_size = 8192):
                 continue
             elif inp == '__screen__':
                 sendScreen(connection)
-                time.sleep(0.5)
+                time.sleep(random.uniform(0.01, 0.02))
                 continue
             elif inp != '__idle__':
                 cinst = ''

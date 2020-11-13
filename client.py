@@ -27,16 +27,16 @@ def receiveImage(soc, screen):
     receiveFile(soc, 'screen.png')
     screen.blit(pygame.image.load('screen.png'), (0, 0))
     pygame.display.flip()
-    print('DONE')    
+    print('Got screenshot')    
 
 # define a variable to control the main loop
 running = True
-
-rec = 1
+lock = False
+rec = 0
 def receive(soc, screen):
     global rec, running
     while running:
-        while rec > 0:
+        while rec > 0 and not lock:
             zz = []
             while True:
                 zz.append(soc.recv(8192).decode("utf8").rstrip())
@@ -54,8 +54,19 @@ def receive(soc, screen):
                     except:
                         pass
             rec -= 1
-        time.sleep(0.04)
+        pygame.display.flip()
+        time.sleep(0.019)
 
+def bigUpdate(soc, screen):
+    global rec, lock
+    lock = True
+    soc.sendall('__screen__'.encode('utf8'))
+    receiveImage(soc, screen)
+    rec += 1
+    soc.sendall(str('__big__').encode('utf8'))
+##    soc.sendall(str('__idle__').encode('utf8'))
+    lock = False
+    
 def main():
     global rec, running
     host, port = input("Input host and port: ").rstrip().split()
@@ -69,7 +80,6 @@ def main():
         print("Connection Error")
         sys.exit()
         
-    soc.sendall('__screen__'.encode('utf8'))
 
     ts = input('Input RGB (press enter for random): ')
     try:
@@ -79,9 +89,6 @@ def main():
 
     pygame.init()
     screen = pygame.display.set_mode((WIDTH,HEIGHT))
-    receiveImage(soc, screen)
-
-
 
     px, py = 0, 0
     pPressed = False
@@ -90,12 +97,13 @@ def main():
     # main loop
     events = []
     timer = 15
+    ctimer = 0
 
     white = (255, 255, 255)
 
 
     print("RGB:", r, g, b, '\n')
-    soc.sendall(str('__big__').encode('utf8'))
+    
 
     Thread(target=receive, args=(soc, screen)).start()
     while running:
@@ -128,8 +136,10 @@ def main():
         pPressed3 = pressed3
         px = x
         py = y
-
-        if timer <= 0 and rec == 0:
+        if ctimer <= 0 and rec == 0:
+            ctimer = 2000
+            bigUpdate(soc, screen)
+        elif timer <= 0 and rec == 0:
             timer = 15
             rec += 1
             if len(events):
@@ -137,10 +147,10 @@ def main():
             else:
                 soc.sendall(str('__idle__').encode('utf8'))
             events = []
-##        receive(soc, screen)
-        pygame.display.flip()
+            pygame.display.flip()
         timer -= 1
-        time.sleep(0.001)
+        ctimer -= 1
+        time.sleep(0.01)
     soc.sendall(str('__exit__').encode('utf8'))
     soc.close()
 
