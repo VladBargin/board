@@ -1,0 +1,226 @@
+import socket
+import sys
+import traceback
+import time
+from threading import Thread
+import threading
+import random
+import pygame
+from PIL import Image
+from queue import Queue
+from util import *
+
+def main():
+    start_server()
+
+MAX_CLIENTS = 100
+idUsed = [(False, None)] * MAX_CLIENTS
+# We will store the last EVENTS_STORED events with their time values and with priorities.
+# And so ensure that everyone has the same board, I will send an image to all new clients and send to all clients the same events to draw localy.
+# But in this version new clients will just start with a blank slate
+# So I will just send them this queue, each event will be given some ID. The local client will check, if he has this ID.
+# In this way, I will not care about dispatching all the events at one time. 
+events = Queue()
+events_to_send = []
+ev_ID = 0
+screen = None
+MAX_EVENTS = 500
+CNT_EVENTS = 100
+WAIT_TIME = 0.01 # This is aproximate, because I may randomize a bit to avoid some data races.
+
+# And this is a flag. I don't want to use the queue system because it won't allow me to do what I want.
+qUsed = False
+sData = 0
+
+def update(ID, status):
+    global idUsed
+    idUsed[ID] = status
+
+def addEvent(event):
+    global events, qUsed, ev_ID
+    qUsed = True
+    events.put_nowait((ev_ID, event))
+    ev_ID += 1
+    while events.queue[0][0] + MAX_EVENTS < ev_ID:
+        events.get_nowait()
+    qUsed = False
+
+def draw():
+    global sData
+    sData += 1
+##    print("draw start")
+    le = len(events_to_send)
+    for ev in events_to_send[max(0, le - MAX_EVENTS):le]:
+        x = ev[1]
+        color = decRgb(x[0])
+        pp = decPos(x[1])
+        np = decPos(x[2])
+        w = x[3]
+        pygame.draw.line(screen, color, pp, np, w)
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                pygame.draw.aaline(screen, color, (pp[0] + i, pp[1] + j), (np[0] + i, np[1] + j), w)
+    pygame.display.flip()
+##    print("draw end")
+    sData -= 1
+    
+def updateETS():
+    global events_to_send, events
+    events_to_send = []
+    if ev_ID == 0:
+        return
+    qUsed = True
+    while events.queue[0][0] + MAX_EVENTS < ev_ID:
+        events.get_nowait()
+    while not events.empty():
+        events_to_send.append(events.get_nowait())
+    for q in events_to_send:
+        events.put_nowait(q)
+    qUsed = False
+    
+
+def sendEvents(connection, ip, port, big=False):
+    global events_to_send, sData
+    sData += 1
+##    connection.sendto(str(events_to_send).encode(), (ip, port))
+    le = len(events_to_send)
+    if big:
+        connection.sendall(str(events_to_send[max(0, le - MAX_EVENTS):le]).encode('utf8'))
+    else:
+        connection.sendall(str(events_to_send[max(0, le - CNT_EVENTS):le]).encode('utf8'))
+    sData -= 1
+
+def sendFile(connection, path):
+    in_file = open('screenshot.png', 'rb') # opening for [r]eading as [b]inary
+    data = in_file.read() # if you only wanted to read 512 bytes, do .read(512)
+    in_file.close()
+    le = len(data)
+    le = str(le).zfill(HEADER_SIZE)
+    connection.sendall(le.encode('utf8') + data)
+    
+
+def sendScreen(connection):
+    pygame.image.save(screen, 'screenshot.png')
+    sendFile(connection, 'screenshot.png')
+    #im = Image.open("screenshot.png").convert('RGB').load()
+    #ta = [tuple([im[i, j][0] + im[i, j][1]*256 + im[i, j][2]*256*256 for j in range(HEIGHT)]) for i in range(WIDTH)]
+    #connection.sendall(str(ta).encode('utf8'))
+    
+def start_server():
+    global screen
+##    host = input("Input host: ")
+    host = ''
+    port = 8000 # arbitrary non-privileged port
+    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    print("Socket created")
+    try:
+        soc.bind((host, port))
+    except:
+        print("Bind failed. Error : " + str(sys.exc_info()))
+        sys.exit()
+    soc.listen(6) # queue up to 6 requests
+    print("Socket now listening")
+
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH,HEIGHT))
+    screen.fill((255,255,255))
+
+    Thread(target=regularThread).start()
+    Thread(target=regularThread2, args=(soc, 0)).start()
+    while True:
+        for event in pygame.event.get():
+            pass
+        while sData > 0:
+            time.sleep(0.01)
+        draw()
+        time.sleep(0.25)
+        
+    soc.close()
+
+def regularThread2(soc, _):
+    # infinite loop- do not reset for every requests
+    while True:
+        connection, address = soc.accept()
+        ip, port = str(address[0]), str(address[1])
+        print("Connected with " + ip + ":" + port)
+      
+        try:
+            c_ID = 0
+            while c_ID < MAX_CLIENTS and idUsed[c_ID][0]:
+                c_ID += 1
+
+            if c_ID >= MAX_CLIENTS:
+                print("Oops!")
+            else:
+                print("New thread!")
+                Thread(target=clientThread, args=(connection, ip, port, c_ID)).start()
+        except:
+            print("Thread did not start.")
+            traceback.print_exc()
+        
+def regularThread():
+    global idUsed
+    i = 0
+    while True:
+        while qUsed or sData > 0:
+            time.sleep(random.uniform(0.0005, 0.001))
+        updateETS()
+        if i % 100 == 0:
+            print(len(events_to_send), 'events stored, takes up', sys.getsizeof(str(events_to_send).encode('utf8')) // 1024, 'KB')            
+        i += 1
+        time.sleep(WAIT_TIME)
+
+
+def clientThread(connection, ip, port, ID, max_buffer_size = 8192):
+    global idUsed
+    
+    idUsed[ID] = (True, connection)
+    while True:
+        try:
+            inp = receive_input(connection, max_buffer_size)
+            if inp == '__exit__':
+                print("Closed connection with " + ip + ":" + port)
+                connection.close()
+                break
+            elif inp == '__big__':
+                sendEvents(connection, ip, port, True)
+                time.sleep(WAIT_TIME)
+                continue
+            elif inp == '__screen__':
+                sendScreen(connection)
+                time.sleep(0.5)
+                continue
+            elif inp != '__idle__':
+                cinst = ''
+                while True:
+                    cinst += inp
+                    if cinst[-1] != ']':
+                        inp = receive_input(connection, max_buffer_size)
+                        continue
+                    events_list = eval(cinst)
+                    for ev in events_list:
+                        while True:
+                            if not qUsed:
+                                addEvent(ev)
+                                break
+                            time.sleep(random.uniform(0.00001, 0.0001))
+                    break
+
+            sendEvents(connection, ip, port)
+        except:
+            pass
+    
+                
+    idUsed[ID] = (False, None)
+
+def receive_input(connection, max_buffer_size):
+    client_input = connection.recv(max_buffer_size)
+    client_input_size = sys.getsizeof(client_input)
+##    if client_input_size > max_buffer_size:
+##      print("The input size is greater than expected {}".format(client_input_size))
+    decoded_input = client_input.decode("utf8").rstrip()
+    return decoded_input
+    
+if __name__ == "__main__":
+   main()
