@@ -22,10 +22,11 @@ idUsed = [(False, None)] * MAX_CLIENTS
 # In this way, I will not care about dispatching all the events at one time. 
 events = Queue()
 events_to_send = []
-ev_ID = 0
+str_to_send_big = ''
+str_to_send_small = ''
 screen = None
-MAX_EVENTS = 256
-CNT_EVENTS = 64
+MAX_EVENTS = 350
+CNT_EVENTS = 96
 WAIT_TIME = 0.01 # This is aproximate, because I may randomize a bit to avoid some data races.
 
 # And this is a flag. I don't want to use the queue system because it won't allow me to do what I want.
@@ -37,10 +38,9 @@ def update(ID, status):
     idUsed[ID] = status
 
 def addEvent(event):
-    global events, qUsed, ev_ID
+    global events, qUsed
     qUsed = True
-    events.put_nowait((ev_ID, event))
-    ev_ID += 1
+    events.put_nowait(event)
     qUsed = False
 
 def draw():
@@ -48,8 +48,7 @@ def draw():
     sData += 1
 ##    print("draw start")
     le = len(events_to_send)
-    for ev in events_to_send[max(0, le - MAX_EVENTS):le]:
-        x = ev[1]
+    for x in events_to_send:
         color = decRgb(x[0])
         pp = decPos(x[1])
         np = decPos(x[2])
@@ -63,10 +62,9 @@ def draw():
     sData -= 1
     
 def updateETS():
-    global events_to_send, events
+    global events_to_send, events, str_to_send_big, str_to_send_small, qUsed
     events_to_send = []
-    if ev_ID == 0:
-        return
+    
     qUsed = True
     while not events.empty():
         events_to_send.append(events.get_nowait())
@@ -75,18 +73,20 @@ def updateETS():
     for q in events_to_send[max(0, le - MAX_EVENTS):le]:
         events.put_nowait(q)
 
+    str_to_send_big = str(events_to_send[max(0, le - MAX_EVENTS):le]).replace(' ', ' ')
+    str_to_send_small = str(events_to_send[max(0, le - CNT_EVENTS):le]).replace(' ', ' ')
     qUsed = False
     
 
 def sendEvents(connection, ip, port, big=False):
-    global events_to_send, sData
+    global events_to_send, sData, str_to_send_big, str_to_send_small
     sData += 1
 ##    connection.sendto(str(events_to_send).encode(), (ip, port))
     le = len(events_to_send)
     if big:
-        connection.sendall(str(events_to_send[max(0, le - MAX_EVENTS):le]).encode('utf8'))
+        connection.sendall(str_to_send_big.encode('utf8'))
     else:
-        connection.sendall(str(events_to_send[max(0, le - CNT_EVENTS):le]).encode('utf8'))
+        connection.sendall(str_to_send_small.encode('utf8'))
     sData -= 1
 
 def sendFile(connection, path):
@@ -166,7 +166,8 @@ def regularThread():
             time.sleep(random.uniform(0.0005, 0.001))
         updateETS()
         if i % 100 == 0:
-            print(len(events_to_send), 'events stored, takes up', sys.getsizeof(str(events_to_send).encode('utf8')) // 1024, 'KB')            
+            sz = sys.getsizeof(str_to_send_big.encode('utf8')) / 1024
+            print(len(events_to_send), 'events stored, takes up', "{:.2f}".format(sz), 'KB')            
         i += 1
         time.sleep(WAIT_TIME)
 

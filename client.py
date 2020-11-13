@@ -29,7 +29,7 @@ def receiveImage(soc, screen):
     pygame.display.flip()
     print('DONE')    
 
-rec = 1
+rec = 0
 def receive(soc, screen):
     global rec
     while rec > 0:
@@ -41,7 +41,6 @@ def receive(soc, screen):
                     t = eval(''.join(zz))
                     zz = []
                     for x in t:
-                        x = x[1]
                         color = decRgb(x[0])
                         pp = decPos(x[1])
                         np = decPos(x[2])
@@ -90,11 +89,12 @@ def main():
     pPressed3 = False
     # main loop
     events = []
-    timer = 9
+    timer = 4
+    ctimer = 0
 
     white = (255, 255, 255)
 
-    soc.sendall(str('__big__').encode('utf8'))
+
     print("RGB:", r, g, b, '\n')
 
 #    Thread(target=receive, args=(soc, screen)).start()
@@ -131,18 +131,23 @@ def main():
         px = x
         py = y
 
-        if timer == 0:
-            timer = 9
+        if ctimer <= 0:
+            ctimer = 51
+            rec += 1
+            soc.sendall(str('__big__').encode('utf8'))
+        elif timer <= 0:
+            timer = 10
             rec += 1
             if len(events):
-                soc.sendall(str(events).encode('utf8'))
+                soc.sendall(str(events).replace(' ', '').encode('utf8'))
             else:
                 soc.sendall(str('__idle__').encode('utf8'))
             events = []
         receive(soc, screen)
         pygame.display.flip()
         timer -= 1
-        time.sleep(0.02)
+        ctimer -= 1
+        time.sleep(0.015)
     soc.sendall(str('__exit__').encode('utf8'))
     soc.close()
 
