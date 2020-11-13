@@ -55,7 +55,7 @@ def receive(soc, screen):
                         pass
             rec -= 1
         pygame.display.flip()
-        time.sleep(0.019)
+        time.sleep(0.012)
 
 def bigUpdate(soc, screen):
     global rec, lock

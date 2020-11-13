@@ -25,9 +25,9 @@ events_to_send = []
 str_to_send_big = ''
 str_to_send_small = ''
 screen = None
-MAX_EVENTS = 700
+MAX_EVENTS = 750
 CNT_EVENTS = 10
-WAIT_TIME = 0.005 # This is aproximate, because I may randomize a bit to avoid some data races.
+WAIT_TIME = 0.01 # This is aproximate, because I may randomize a bit to avoid some data races.
 
 # And this is a flag. I don't want to use the queue system because it won't allow me to do what I want.
 qUsed = False
