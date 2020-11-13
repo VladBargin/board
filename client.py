@@ -119,10 +119,10 @@ def main():
                 events.append((encRgb(r, g, b), pp, cp, 3))
                 pygame.draw.line(screen, (r, g, b), (px, py), (x, y), 3)
             elif pPressed2 and pressed2:
-                events.append((encRgb(255), pp, cp, 30))
+                events.append((encRgb(255, 255, 255), pp, cp, 30))
                 pygame.draw.line(screen, white, (px, py), (x, y), 30)
             elif pPressed3 and pressed3:
-                events.append((encRgb(255), pp, cp, 100))
+                events.append((encRgb(255, 255, 255), pp, cp, 100))
                 pygame.draw.line(screen, white, (px, py), (x, y), 100)
             
         pPressed = pressed
