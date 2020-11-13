@@ -25,7 +25,7 @@ events_to_send = []
 str_to_send_big = ''
 str_to_send_small = ''
 screen = None
-MAX_EVENTS = 350
+MAX_EVENTS = 512
 CNT_EVENTS = 10
 WAIT_TIME = 0.015 # This is aproximate, because I may randomize a bit to avoid some data races.
 
@@ -49,10 +49,7 @@ def draw():
 ##    print("draw start")
     le = len(events_to_send)
     for x in events_to_send:
-        color = decRgb(x[0])
-        pp = decPos(x[1])
-        np = decPos(x[2])
-        w = x[3]
+        color, pp, np, w = decEvent(x)
         pygame.draw.line(screen, color, pp, np, w)
         for i in range(-1, 2):
             for j in range(-1, 2):

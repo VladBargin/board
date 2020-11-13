@@ -1,19 +1,19 @@
 WIDTH = 800
-HEIGHT = 550
+HEIGHT = 500
 HEADER_SIZE = 20
-EVENTS_PER_CLIENT = 25
+EVENTS_PER_CLIENT = 50
 
-def encRgb(r, g, b):
-    return r + g*256 + b * 256 * 256
+p = [256, 256, 256, WIDTH, HEIGHT, WIDTH, HEIGHT, 1000]
+tp = [p[0]]
+for i in range(1, len(p) - 1):
+    tp.append(p[i] * tp[i - 1])
 
-def decRgb(x):
-    b = x // 256 // 256
-    g = (x - 256 * 256 * b) // 256
-    r = x % 256
-    return (r, g, b)
+def encEvent(r, g, b, px, py, x, y, w):
+    return r + g * tp[0] + b * tp[1] + px * tp[2] + py * tp[3] + x * tp[4] + y * tp[5] + w * tp[6]
 
-def encPos(x, y):
-    return y * WIDTH + x
-
-def decPos(p):
-    return (p % WIDTH, p // WIDTH) 
+def decEvent(x):
+    res = []
+    for i in range(8):
+        res.append(x % p[i])
+        x //= p[i]
+    return ((res[0], res[1], res[2]), (res[3], res[4]), (res[5], res[6]), res[7])
