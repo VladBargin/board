@@ -24,8 +24,8 @@ events = Queue()
 events_to_send = []
 ev_ID = 0
 screen = None
-MAX_EVENTS = 400
-CNT_EVENTS = 80
+MAX_EVENTS = 256
+CNT_EVENTS = 64
 WAIT_TIME = 0.01 # This is aproximate, because I may randomize a bit to avoid some data races.
 
 # And this is a flag. I don't want to use the queue system because it won't allow me to do what I want.
@@ -41,8 +41,6 @@ def addEvent(event):
     qUsed = True
     events.put_nowait((ev_ID, event))
     ev_ID += 1
-    while events.queue[0][0] + MAX_EVENTS < ev_ID:
-        events.get_nowait()
     qUsed = False
 
 def draw():
@@ -70,14 +68,13 @@ def updateETS():
     if ev_ID == 0:
         return
     qUsed = True
-    while events.queue[0][0] + MAX_EVENTS < ev_ID:
-        events.get_nowait()
     while not events.empty():
         events_to_send.append(events.get_nowait())
-    for q in events_to_send:
+
+    le = len(events_to_send)
+    for q in events_to_send[max(0, le - MAX_EVENTS):le]:
         events.put_nowait(q)
-    
-    print(events_to_send[-1][1] - events_to_send[0][1])
+
     qUsed = False
     
 
