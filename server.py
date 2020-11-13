@@ -24,8 +24,8 @@ events = Queue()
 events_to_send = []
 ev_ID = 0
 screen = None
-MAX_EVENTS = 500
-CNT_EVENTS = 100
+MAX_EVENTS = 400
+CNT_EVENTS = 80
 WAIT_TIME = 0.01 # This is aproximate, because I may randomize a bit to avoid some data races.
 
 # And this is a flag. I don't want to use the queue system because it won't allow me to do what I want.
@@ -76,6 +76,8 @@ def updateETS():
         events_to_send.append(events.get_nowait())
     for q in events_to_send:
         events.put_nowait(q)
+    
+    print(events_to_send[-1][1] - events_to_send[0][1])
     qUsed = False
     
 

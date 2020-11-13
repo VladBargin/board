@@ -142,7 +142,7 @@ def main():
         receive(soc, screen)
         pygame.display.flip()
         timer -= 1
-        time.sleep(0.005)
+        time.sleep(0.02)
     soc.sendall(str('__exit__').encode('utf8'))
     soc.close()
 
