@@ -25,7 +25,7 @@ events_to_send = []
 str_to_send_big = ''
 str_to_send_small = ''
 screen = None
-MAX_EVENTS = 512
+MAX_EVENTS = 1024
 CNT_EVENTS = 10
 WAIT_TIME = 0.015 # This is aproximate, because I may randomize a bit to avoid some data races.
 
@@ -130,7 +130,7 @@ def start_server():
         while sData > 0:
             time.sleep(0.01)
         draw()
-        time.sleep(0.04)
+        time.sleep(0.05)
         
     soc.close()
 
@@ -160,9 +160,9 @@ def regularThread():
     i = 0
     while True:
         while qUsed or sData > 0:
-            time.sleep(random.uniform(0.0005, 0.001))
+            time.sleep(random.uniform(0.00005, 0.00011))
         updateETS()
-        if i % 100 == 0:
+        if i % 80 == 0:
             sz = sys.getsizeof(str_to_send_big.encode('utf8')) / 1024
             print(len(events_to_send), 'events stored, takes up', "{:.2f}".format(sz), 'KB ', 'C_E:', CNT_EVENTS)            
         i += 1

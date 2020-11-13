@@ -54,7 +54,7 @@ def receive(soc, screen):
                     except:
                         pass
             rec -= 1
-        time.sleep(0.005)
+        time.sleep(0.04)
 
 def main():
     global rec, running
